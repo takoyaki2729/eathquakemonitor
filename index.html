@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>地震速報テスト（震度画像＋正規マップ）</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 1em;
+      max-width: 480px;
+      margin-inline: auto;
+    }
+    h1 {
+      font-size: 1.5rem;
+    }
+    button {
+      padding: 0.5em 1em;
+      font-size: 1rem;
+      margin: 1em 0;
+    }
+    #quakeInfo {
+      background: #fef3f3;
+      border: 2px solid #ff4c4c;
+      border-radius: 8px;
+      padding: 1em;
+      white-space: pre-wrap;
+      font-size: 1rem;
+    }
+    #intensityImg {
+      display: block;
+      margin: 1em auto 0;
+      max-width: 120px;
+    }
+  </style>
+</head>
+<body>
+  <h1>最新の地震情報（テスト）</h1>
+  <button onclick="fetchLatest()">最新の地震情報を取得</button>
+  <div id="quakeInfo">ここに地震情報が表示されます。</div>
+  <img id="intensityImg" src="" alt="" style="display: none;" />
+
+  <script>
+    const quakeInfo = document.getElementById('quakeInfo');
+    const intensityImg = document.getElementById('intensityImg');
+
+    // P2Pの maxScale 数値 → 表示用震度文字列
+    const intensityMap = {
+      10: '1',
+      20: '2',
+      30: '3',
+      40: '4',
+      45: '5-',
+      50: '5+',
+      55: '6-',
+      60: '6+',
+      70: '7'
+    };
+
+    // 表示する画像（同じフォルダに置いてね）
+    const intensityImages = {
+      '1': 'shindo1.png',
+      '2': 'shindo2.png',
+      '3': 'shindo3.png',
+      '4': 'shindo4.png',
+      '5-': 'shindo5minus.png',
+      '5+': 'shindo5plus.png',
+      '6-': 'shindo6minus.png',
+      '6+': 'shindo6plus.png',
+      '7': 'shindo7.png'
+    };
+
+    function getImageByIntensity(scaleStr) {
+      return intensityImages[scaleStr] || null;
+    }
+
+    async function fetchLatest() {
+      quakeInfo.textContent = '取得中...';
+      intensityImg.style.display = 'none';
+
+      try {
+        const res = await fetch('https://api.p2pquake.net/v2/history?codes=551&limit=1');
+        const data = await res.json();
+        if (!data.length) {
+          quakeInfo.textContent = '地震データがありません';
+          return;
+        }
+
+        const quake = data[0].earthquake || {};
+        const hypo = quake.hypocenter || {};
+        const rawScale = quake.maxScale;
+
+        const scale = intensityMap[rawScale] || '不明'; // ← 正常マップ処理
+
+        const place = hypo.name || '不明';
+        const depth = hypo.depth !== undefined ? hypo.depth + ' km' : '不明';
+        const mag = hypo.magnitude !== undefined ? hypo.magnitude.toFixed(1) : '不明';
+        const timeStr = data[0].time || '不明';
+
+        quakeInfo.textContent =
+          `発生時刻: ${timeStr}\n` +
+          `震央: ${place}\n` +
+          `深さ: ${depth}\n` +
+          `マグニチュード: ${mag}\n` +
+          `最大震度: ${scale}`;
+
+        const img = getImageByIntensity(scale);
+        if (img) {
+          intensityImg.src = img;
+          intensityImg.alt = `震度${scale}の画像`;
+          intensityImg.style.display = 'block';
+        }
+
+      } catch (e) {
+        quakeInfo.textContent = '取得失敗: ' + e.message;
+      }
+    }
+  </script>
+</body>
+</html>

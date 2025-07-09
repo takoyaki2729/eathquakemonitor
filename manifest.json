@@ -1,0 +1,8 @@
+{
+  "name": "地震速報アプリ",
+  "short_name": "地震アプリ",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ff4c4c"
+}
